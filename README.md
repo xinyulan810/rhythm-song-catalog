@@ -1,47 +1,64 @@
 # Rhythm Song Catalog
 
-用于整理音游歌曲名称和部分别名的独立曲库项目。数据保留游戏和上游来源，不按同名自动合并歌曲；ASTRODX 使用 maimai 曲库，不作为独立游戏。
+一个整理多款音游曲名、曲师和部分别名的数据项目，提供 JSON 文件供检索、匹配和开发使用。
 
-## 当前公开数据
+## 曲库
 
-`data/arcaea.json` 包含 Arcaea Toolbelt 6.16.1c 快照的 544 条曲目，部分曲目包含社区别名。数据来自 [Arcaea Toolbelt Data](https://github.com/DarrenDanielDay/arcaea-toolbelt-data)，上游仓库标注 MIT，许可证全文在 `licenses/arcaea-toolbelt-MIT.txt`。歌曲标题、艺术家名称等内容的权利可能另属于相应权利人；不包含音频、曲绘或谱面。
+完整整理快照：[`data/catalog.json`](data/catalog.json)，包含 5870 条来源记录，覆盖 Arcaea、Phigros、Project SEKAI、BanG Dream!、maimai、CHUNITHM、Rotaeno、Milthm 和 Rizline。部分歌曲附有别名；ASTRODX 按 maimai 归类。
 
-其他来源的再分发许可尚未确认，**不在公开仓库中提供数据**。已有的本地研究快照包含 Phigros、Project SEKAI 日服、BanG Dream!、maimai、CHUNITHM、Rotaeno、Milthm 和 Rizline；条目完整性及来源许可还需逐一核对，不能称为完整官方曲库。
+另有独立的 [`data/arcaea.json`](data/arcaea.json)，包含 544 条 Arcaea 曲目及 817 个别名。
+
+这些数字是**来源记录数，而不是去重后的歌曲数**。同一首联动曲在多个游戏中可以分别出现，同名也不一定代表同一首歌。曲库不是完整性保证；服务器、更新时间及来源说明见 [SOURCES.md](SOURCES.md)。
+
+**数据质量提示：** 部分 Wiki 提取结果仍存在重复来源 ID 和格式残留，别名也未经逐条核实。全量快照可用于研究和测试，但使用前应按需求清洗；不要把它视为准确无误的官方数据。
+
+**许可提示：** 各来源的使用和再分发条件不尽相同，部分尚未确认。Arcaea Toolbelt 上游仓库标注 MIT，许可证保存在 [`licenses/`](licenses/)；这不代表所有来源数据、歌曲或相关素材均使用相同许可。使用或再分发前请自行核实各来源及相关权利。
 
 ## 数据格式
 
+每个 JSON 文件包含 `schemaVersion`、`sources` 和 `songs`。曲目示例：
+
 ```json
 {
-  "schemaVersion": 1,
-  "sources": [{"game": "arcaea", "provider": "arcaea-toolbelt", "revision": "...", "license": "MIT"}],
-  "songs": [
-    {
-      "game": "arcaea",
-      "provider": "arcaea-toolbelt",
-      "sourceId": "sayonarahatsukoi",
-      "title": "Sayonara Hatsukoi",
-      "artist": "REDSHiFT",
-      "names": ["Sayonara Hatsukoi"],
-      "aliases": ["再见初恋", "失恋", "再见世征"]
-    }
-  ]
+  "game": "arcaea",
+  "provider": "arcaea-toolbelt",
+  "sourceId": "sayonarahatsukoi",
+  "title": "Sayonara Hatsukoi",
+  "artist": "REDSHiFT",
+  "names": ["Sayonara Hatsukoi"],
+  "aliases": ["再见初恋", "失恋", "再见世征"]
 }
 ```
 
-`names` 是正式名或本地化名称，`aliases` 是来源提供的别名；别名不保证准确、唯一或覆盖全部曲目。`game + provider + sourceId` 构成来源记录的身份，同一作品跨游戏可能有多条记录。
+`names` 保存来源中的正式名或本地化名称，`aliases` 保存已收集的别名。`game`、`provider`、`sourceId` 共同标识来源记录；现有全量快照中部分记录尚未满足唯一性要求。
 
-## 本地整理
+## 调用
 
-需要 Python 3.9 或更新版本，无第三方依赖。可把个人已有的 Rhythm Album 曲库快照转换为统一格式：
+可以下载 JSON 文件并在本地读取，或通过 GitHub 的 Raw 文件地址获取。生产环境建议固定 Git 提交版本并缓存文件，避免依赖实时网络和数据变动。
 
-```sh
-python tools/import_snapshot.py --input PATH_TO_SNAPSHOT --output local/catalog.json
-python tools/validate.py local/catalog.json
-python tools/validate.py data/arcaea.json
+Python 示例：
+
+```python
+import json
+from pathlib import Path
+
+catalog = json.loads(Path("data/catalog.json").read_text(encoding="utf-8"))
+matches = [
+    song for song in catalog["songs"]
+    if "Aegleseeker" in [song["title"], *song["names"], *song["aliases"]]
+]
+print(matches)
 ```
 
-导入不会修改输入文件，输出已存在时会拒绝覆盖。`local/` 被 Git 忽略，不会因为运行命令而提交许可未确认的数据。上游数据可能变化，公开发布任何额外数据前请先核查每个来源的再分发条件、署名要求及真实性。
+数据中有跨游戏重复，建议根据应用场景先筛选 `game`，再搜索其余游戏。别名可能有歧义，不应假定其全局唯一。
 
-## 状态与贡献
+## 校验和贡献
 
-来源与待办见 [SOURCES.md](SOURCES.md)。欢迎补充可验证的公开数据源和许可信息；提交别名时请说明对应歌曲和依据，勿上传个人截图或其他私人数据。请勿将歌曲、谱面和曲绘的权利等同于数据整理脚本的许可。
+使用 Python 3.9 或更新版本，无第三方依赖：
+
+```sh
+python tools/validate.py data/arcaea.json
+python tools/validate.py data/catalog.json
+```
+
+校验器检查必填字段和来源 ID 唯一性；全量快照目前已知会报告重复，待清洗。欢迎提交来源、错误修正和别名，并注明依据及数据许可；请勿提交私人截图、音频、曲绘或谱面。
